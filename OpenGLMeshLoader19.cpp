@@ -13,7 +13,7 @@ char title[] = "3D Model Loader Sample";
 GLdouble fovy = 45.0;
 GLdouble aspectRatio = (GLdouble)WIDTH / (GLdouble)HEIGHT;
 GLdouble zNear = 0.1;
-GLdouble zFar = 100;
+GLdouble zFar = 10000;
 
 class Vector
 {
@@ -33,7 +33,7 @@ public:
 	}
 };
 
-Vector Eye(0, 15, 20);
+Vector Eye(0, 13, 30);
 Vector At(0, 0, 0);
 Vector Up(0, 1, 0);
 
@@ -151,16 +151,17 @@ void RenderGround()
 	glBindTexture(GL_TEXTURE_2D, tex_ground.texture[0]);	// Bind the ground texture
 
 	glPushMatrix();
+	glTranslated(0, 0, -800);
 	glBegin(GL_QUADS);
 	glNormal3f(0, 1, 0);	// Set quad normal direction.
 	glTexCoord2f(0, 0);		// Set tex coordinates ( Using (0,0) -> (5,5) with texture wrapping set to GL_REPEAT to simulate the ground repeated grass texture).
-	glVertex3f(-20, 0, -200);
+	glVertex3f(-15, 0, -900);
 	glTexCoord2f(5, 0);
-	glVertex3f(20, 0, -200);
+	glVertex3f(15, 0, -900);
 	glTexCoord2f(5, 5);
-	glVertex3f(20, 0, 200);
+	glVertex3f(15, 0, 900);
 	glTexCoord2f(0, 5);
-	glVertex3f(-20, 0, 200);
+	glVertex3f(-15, 0, 900);
 	glEnd();
 	glPopMatrix();
 
@@ -169,6 +170,15 @@ void RenderGround()
 	glColor3f(1, 1, 1);	// Set material back to white instead of grey used for the ground texture.
 }
 
+
+void drawMoto(int x, int z) {
+	glPushMatrix();
+	glTranslated(x, 2.5, z);
+	glScaled(0.05, 0.03, 0.04);
+	model_moto.Draw();
+	glPopMatrix();
+
+}
 //=======================================================================
 // Display Function
 //=======================================================================
@@ -193,21 +203,26 @@ void myDisplay(void)
 	model_tree.Draw();
 	glPopMatrix();
 
-	// Draw house Model
-	glPushMatrix();
-	//glRotatef(90.f, 1, 0, 0);
-	//glColor3f(0.9,1,0);
-	glTranslated(0, 1.5, 0);
-	glScaled(0.02, 0.02, 0.02);
-	model_moto.Draw();
-	glPopMatrix();
+	// Draw motos Model
+	drawMoto(10, -100);
+	drawMoto(1, -200);
+	drawMoto(10, -300);
+	drawMoto(-10, -300);
+	drawMoto(1, -400);
+	drawMoto(1, -500);
+	drawMoto(10, -500);
+	drawMoto(-10, -600);
+	drawMoto(1, -700);
+	drawMoto(-10, -700);
+
+	
 
 	glPushMatrix();
-	//glRotatef(90.f, 1, 0, 0);
+	glRotatef(180.f, 0, 1, 0);
 	//glColor3f(0.9,1,0);
-	glTranslated(3, 1.5, 0);
-	//glScaled(0.02, 0.02, 0.02);
-	//model_robot.Draw();
+	glTranslated(0, 3.5, 0);
+	glScaled(0.15, 0.15, 0.15);
+	model_robot.Draw();
 	glPopMatrix();
 
 
@@ -218,10 +233,11 @@ void myDisplay(void)
 	qobj = gluNewQuadric();
 	glTranslated(50, 0, 0);
 	glRotated(90, 1, 0, 1);
+
 	glBindTexture(GL_TEXTURE_2D, tex);
 	gluQuadricTexture(qobj, true);
 	gluQuadricNormals(qobj, GL_SMOOTH);
-	gluSphere(qobj, 100, 100, 100);
+	gluSphere(qobj, 1000, 100, 100);
 	gluDeleteQuadric(qobj);
 
 
@@ -231,6 +247,8 @@ void myDisplay(void)
 
 	glutSwapBuffers();
 }
+
+
 
 //=======================================================================
 // Keyboard Function
