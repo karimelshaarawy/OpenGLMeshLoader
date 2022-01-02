@@ -2,11 +2,15 @@
 #include "Model_3DS.h"
 #include "GLTexture.h"
 #include <glut.h>
+#include<vector>
+#include <iostream>
+using namespace std;
 
 int WIDTH = 1280;
 int HEIGHT = 720;
 
 GLuint tex;
+GLuint xet;
 char title[] = "3D Model Loader Sample";
 
 // 3D Projection Options
@@ -14,6 +18,51 @@ GLdouble fovy = 45.0;
 GLdouble aspectRatio = (GLdouble)WIDTH / (GLdouble)HEIGHT;
 GLdouble zNear = 0.1;
 GLdouble zFar = 10000;
+
+double robotx = 0;
+double robotz = 0;
+double roboty = 3.5;
+bool push = true;
+bool gameOn = true;
+int px = 0;
+int pz= 0;
+int inv = 1;
+bool firstPerson;
+vector<double>p = {};
+vector<double>coins = {};
+int coinsx = 0;
+int coinsz = 0;
+int jumpUp = 0;
+int jumpDown = 0;
+bool jump = false;
+vector<double>cars = {};
+int carsx = 0;
+int carsz = 0;
+bool coinsbool[5] = { true,true,true,true,true };
+bool coin1 = true;
+bool coin2 = true;
+bool coin3 = true;
+bool coin4 = true;
+bool coin5 = true;
+vector<double>magic = {};
+int magicx = 0;
+int magicz = 0;
+
+int flyUp = 0;
+int flyDown = 0;
+int flyStill = 0;
+bool fly = false;
+
+double deathroll = 0;
+double rotateDeg=0;
+
+double lightElevation = 10;
+bool lightUp = true;
+
+double ambientRed = 0.1;
+double ambientdiffuse=0.5;
+
+double text = -50;
 
 class Vector
 {
@@ -45,9 +94,14 @@ Model_3DS model_tree;
 Model_3DS model_car;
 Model_3DS model_moto;
 Model_3DS model_robot;
+Model_3DS model_coin;
+Model_3DS model_cactus;
+Model_3DS model_magic;
+
 
 // Textures
 GLTexture tex_ground;
+GLTexture xet_ground;
 
 //=======================================================================
 // Lighting Configuration Function
@@ -74,8 +128,25 @@ void InitLightSource()
 	glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
 
 	// Finally, define light source 0 position in World Space
-	GLfloat light_position[] = { 0.0f, 10.0f, 0.0f, 1.0f };
+	GLfloat light_position[] = { 0.0f, 10, 0, 1.0f };
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+}
+
+void print(int x, int y,int z, char* string)
+{
+	int len, i;
+
+	//set the position of the text in the window using the x and y coordinates
+	glRasterPos3f(x, y,z);
+
+	//get the length of the string to display
+	len = (int)strlen(string);
+
+	//loop to display character by character
+	for (i = 0; i < len; i++)
+	{
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, string[i]);
+	}
 }
 
 //=======================================================================
@@ -155,13 +226,43 @@ void RenderGround()
 	glBegin(GL_QUADS);
 	glNormal3f(0, 1, 0);	// Set quad normal direction.
 	glTexCoord2f(0, 0);		// Set tex coordinates ( Using (0,0) -> (5,5) with texture wrapping set to GL_REPEAT to simulate the ground repeated grass texture).
-	glVertex3f(-15, 0, -900);
-	glTexCoord2f(5, 0);
-	glVertex3f(15, 0, -900);
-	glTexCoord2f(5, 5);
-	glVertex3f(15, 0, 900);
-	glTexCoord2f(0, 5);
-	glVertex3f(-15, 0, 900);
+	glVertex3f(-20, 0, 70);
+	glTexCoord2f(1, 0);
+	glVertex3f(20, 0, 70);
+	glTexCoord2f(1, 15);
+	glVertex3f(20, 0, 900);
+	glTexCoord2f(0, 15);
+	glVertex3f(-20, 0, 900);
+	glEnd();
+	glPopMatrix();
+
+	glEnable(GL_LIGHTING);	// Enable lighting again for other entites coming throung the pipeline.
+
+	glColor3f(1, 1, 1);	// Set material back to white instead of grey used for the ground texture.
+}
+
+void RenderGround2()
+{
+	glDisable(GL_LIGHTING);	// Disable lighting 
+
+	glColor3f(0.6, 0.6, 0.6);	// Dim the ground texture a bit
+
+	glEnable(GL_TEXTURE_2D);	// Enable 2D texturing
+
+	glBindTexture(GL_TEXTURE_2D, xet_ground.texture[0]);	// Bind the ground texture
+
+	glPushMatrix();
+	glTranslated(0, 0, -800);
+	glBegin(GL_QUADS);
+	glNormal3f(0, 1, 0);	// Set quad normal direction.
+	glTexCoord2f(0, 0);		// Set tex coordinates ( Using (0,0) -> (5,5) with texture wrapping set to GL_REPEAT to simulate the ground repeated grass texture).
+	glVertex3f(-25, 0, -1100);
+	glTexCoord2f(1, 0);
+	glVertex3f(25, 0, -1100);
+	glTexCoord2f(1, 15);
+	glVertex3f(25, 0, 70);
+	glTexCoord2f(0, 15);
+	glVertex3f(-25, 0, 70);
 	glEnd();
 	glPopMatrix();
 
@@ -171,11 +272,217 @@ void RenderGround()
 }
 
 
+
+void LoadAssets()
+{
+	// Loading Model files
+	model_moto.Load("Models/train/tr.3ds");
+	model_car.Load("Models/car/car.3ds");
+	model_robot.Load("Models/robot/robot.3ds");
+	//model_coin.Load("Models/coin/coin.3ds");
+	model_cactus.Load("Models/cactus/cactus.3ds");
+	model_magic.Load("Models/magic/magic.3ds");
+
+
+	// Loading texture files
+	tex_ground.Load("Textures/sand2.bmp");
+	xet_ground.Load("Textures/road2.bmp");
+
+		loadBMP(&tex, "Textures/desert.bmp", true);
+	
+	
+		loadBMP(&xet, "Textures/blu-sky-3.bmp", true);
+	
+}
+
+void time(int) {
+
+	if (lightUp && lightElevation < 12) {
+		lightElevation++;
+		if (lightElevation == 12)
+			lightUp = false;
+	}
+	if (lightUp == false && lightElevation > -1000) {
+		lightElevation-=20;
+		if (lightElevation == -5)
+			lightUp = true;
+	}
+	
+	if (gameOn == false) {
+		deathroll = 90;
+		
+	}
+	if(gameOn){
+	robotz = robotz - 5;
+	text = text - 5;
+	}
+
+	if (rotateDeg == 360) {
+		rotateDeg = 0;
+	}
+	rotateDeg += 3;
+	if (jumpUp > 0) {
+		roboty += 2;
+		jumpUp -= 2;
+		if (jumpUp == 0)
+			jumpDown = 6;
+	}
+	if (jumpDown > 0) {
+		roboty -= 2;
+		jumpDown -= 2;
+		if (jumpDown == 0)
+			jump = false;
+	}
+	if (flyUp > 0) {
+		roboty += 2;
+		flyUp -= 2;
+		if (flyUp == 0)
+			flyStill = 60;
+	}
+	if (flyStill > 0) {
+		flyStill -= 2;
+		if (flyStill == 0)
+			flyDown = 8;
+	}
+	if (flyDown > 0) {
+		roboty -= 2;
+		flyDown -= 2;
+		if (flyDown == 0)
+			fly = false;
+	}
+
+	if (gameOn) {
+		Eye.z -= 5;
+		At.z -= 5;
+	}
+	glLoadIdentity();	//Clear Model_View Matrix
+
+	gluLookAt(Eye.x, Eye.y, Eye.z, At.x, At.y, At.z, Up.x, Up.y, Up.z);	//Setup Camera with modified paramters
+
+	
+		
+	for (int i = 0; i < p.size(); i = i + 2) {
+		px = p.at(i);
+		pz= p.at(i + 1);
+		if (px == robotx || (px == 1 && robotx == 0)) {
+			if ((robotz - pz)<8.5 && (robotz - pz)>-5) {
+				if (fly == false) {
+					gameOn = false;
+					robotz += 5;
+					roboty -= 2;
+				}
+			}
+
+	}
+	}
+
+	for (int i = 0; i < cars.size(); i = i + 2) {
+		carsx = cars.at(i);
+		carsz = cars.at(i + 1);
+		if (carsx == robotx || (carsx == 12 && robotx == 10) || (carsx==-12 && robotx==-10)) {
+			if ((robotz - carsz) < 16 && (robotz - carsz) > -8) {
+				if (fly == false) {
+					gameOn = false;
+					robotz += 5;
+					roboty -= 2;
+				}
+			}
+
+		}
+	}
+
+	for (int i = 0; i < magic.size(); i = i + 2) {
+		magicx = magic.at(i);
+		magicz = magic.at(i + 1);
+		if (magicx == robotx || (magicx == 1 && robotx == 0)) {
+			if ((robotz - magicz) < 1.5 && (robotz - magicz) > -2) {
+				fly = true;
+				flyUp = 8;
+			}
+
+		}
+	}
+
+
+	for (int i = 0; i < coins.size(); i = i + 2) {
+		coinsx = coins.at(i);
+		coinsz = coins.at(i + 1);
+		if (coinsx == robotx || (coinsx == 1 && robotx == 0)) {
+			if ((robotz - coinsz) < 1 && (robotz - coinsz) > -1) {
+				int z = i/2;
+				
+				if (i== 0)
+					coin1 = false;
+				else if (i  == 2) {
+					coin2 = false;
+				}
+				else if (i == 4)
+					coin3 = false;
+				else if (i==6)
+					coin4 = false;
+				else if (i==8)
+					coin5 = false;
+
+				if (jumpUp==0 && jumpDown<=0) {
+					jumpUp = 6;
+					jump = true;
+				}
+			}
+
+		}
+	}
+
+	glutPostRedisplay();
+	glutTimerFunc(100, time, 0);
+}
+
+
+
+void drawCoin(double x, double z) {
+
+	
+	GLUquadricObj* qobj;
+	qobj = gluNewQuadric();
+	gluQuadricDrawStyle(qobj, GLU_LINE);  //GLU_FILL, GLU_SILHOUETTE ,GLU_POINT
+	glPushMatrix();
+	glColor3f(1, 0.9, 0);
+	glTranslated(x, 3, z);
+	glRotated(rotateDeg, 0, 1, 0);
+	gluCylinder(qobj, 3, 0.01, 0.01, 80, 80);
+	glPopMatrix();
+
+}
+
+void drawMagic(double x, double z) {
+	glPushMatrix();
+	glTranslated(x, 0, z);
+	glScaled(0.4, 0.4, 0.4);
+	model_magic.Draw();
+		glPopMatrix();
+}
+
 void drawMoto(int x, int z) {
 	glPushMatrix();
 	glTranslated(x, 2.5, z);
 	glScaled(0.05, 0.03, 0.04);
 	model_moto.Draw();
+	glPopMatrix();
+
+}
+
+void drawCar(int x, int z) {
+	glPushMatrix();
+	glTranslated(x, 3, z);
+	glScaled(0.4, 0.4, 0.4);
+	model_car.Draw();
+	glPopMatrix();
+
+}
+void drawCactus(int x, int z) {
+	glPushMatrix();
+	glTranslated(x,1, z);
+	glScaled(0.1, 0.08, 0.1);
+	model_cactus.Draw();
 	glPopMatrix();
 
 }
@@ -195,13 +502,24 @@ void myDisplay(void)
 
 	// Draw Ground
 	RenderGround();
+	RenderGround2();
 
-	// Draw Tree Model
-	glPushMatrix();
-	glTranslatef(10, 0, 0);
-	glScalef(0.7, 0.7, 0.7);
-	model_tree.Draw();
-	glPopMatrix();
+	//Draw score
+	glColor3f(0, 0, 0);
+	char* p0s[20];
+	sprintf((char*)p0s, "Score: %d", 50);
+	print(-20, 8,text, (char*)p0s);
+	glColor3f(1, 1, 1);
+
+	
+
+	// Draw magic
+	drawMagic(1,-420 );
+	if (push) {
+		magic.push_back(1);
+		magic.push_back(-420);
+	}
+
 
 	// Draw motos Model
 	drawMoto(10, -100);
@@ -214,14 +532,102 @@ void myDisplay(void)
 	drawMoto(-10, -600);
 	drawMoto(1, -700);
 	drawMoto(-10, -700);
+	if (push) {
+		p.push_back(10);
+		p.push_back(-100);
+		p.push_back(1);
+		p.push_back(-200);
+		p.push_back(10);
+		p.push_back(-300);
+		p.push_back(-10);
+		p.push_back(-300);
+		p.push_back(1);
+		p.push_back(-400);
+		p.push_back(1);
+		p.push_back(-500);
+		p.push_back(10);
+		p.push_back(-500);
+		p.push_back(-10);
+		p.push_back(-600);
+		p.push_back(1);
+		p.push_back(-700);
+		p.push_back(-10);
+		p.push_back(-700);
+		
+	}
+	if(coin1)
+	drawCoin(1, -50);
+	if (coin2)
+		drawCoin(10, -150);
+	if (coin3)
+		drawCoin(-10, -250);
+	if (coin4)
+		drawCoin(1, -350);
+	if (coin5)
+		drawCoin(10, -650);
+
+	if (push) {
+		coins.push_back(1);
+		coins.push_back(-50);
+		coins.push_back(10);
+		coins.push_back(-150);
+		coins.push_back(-10);
+		coins.push_back(-250);
+		coins.push_back(1);
+		coins.push_back(-350);
+		coins.push_back(10);
+		coins.push_back(-650);
+	}
+	glColor3f(1, 1, 1);
+	
+
+	
+	//draw Cars
+	drawCar(0, -900);
+	drawCar(0, -1000);
+	drawCar(12, -1000);
+	drawCar(-12, -1100);
+	drawCar(-12, -1200);
+	drawCar(12, -1200);
+	drawCar(0, -1300);
+	drawCar(0, -1400);
+	drawCar(-12, -1400);
+	drawCar(12, -1500);
+	drawCar(0, -1500);
+	drawCar(-12, -1600);
+	drawCar(12, -1700);
+	drawCar(-12, -1700);
+	if (push) {
+		cars.push_back(0);
+		cars.push_back(-900);
+		cars.push_back(0);
+		cars.push_back(-1000);
+		cars.push_back(12);
+		cars.push_back(-1000);
+	}
+
+	//draw cactus
+	drawCactus(15, -150);
+	drawCactus(-15, -250);
+	drawCactus(15, -350);
+	drawCactus(-15, -350);
+	drawCactus(15, -450);
+	drawCactus(-15, -550);
+	drawCactus(15, -650);
+	drawCactus(-15, -700);
+	
+	
 
 	
 
 	glPushMatrix();
-	glRotatef(180.f, 0, 1, 0);
+	
 	//glColor3f(0.9,1,0);
-	glTranslated(0, 3.5, 0);
+	glTranslated(robotx,roboty, robotz);
 	glScaled(0.15, 0.15, 0.15);
+	//glScaled(0.05, 0.05, 0.05);
+	glRotated(deathroll, 1, 0, 0);
+	glRotatef(180, 0, 1, 0);
 	model_robot.Draw();
 	glPopMatrix();
 
@@ -237,13 +643,29 @@ void myDisplay(void)
 	glBindTexture(GL_TEXTURE_2D, tex);
 	gluQuadricTexture(qobj, true);
 	gluQuadricNormals(qobj, GL_SMOOTH);
-	gluSphere(qobj, 1000, 100, 100);
+	gluSphere(qobj, 720, 100, 100);
 	gluDeleteQuadric(qobj);
 
 
 	glPopMatrix();
 
+	glPushMatrix();
 
+	//GLUquadricObj* qobj;
+	qobj = gluNewQuadric();
+	glTranslated(50, 0, -500);
+	glRotated(90, 1, 0, 1);
+
+	glBindTexture(GL_TEXTURE_2D, xet);
+	gluQuadricTexture(qobj, true);
+	gluQuadricNormals(qobj, GL_SMOOTH);
+	gluSphere(qobj, 1300, 100, 100);
+	gluDeleteQuadric(qobj);
+
+
+	glPopMatrix();
+
+	push = false;
 
 	glutSwapBuffers();
 }
@@ -262,6 +684,50 @@ void myKeyboard(unsigned char button, int x, int y)
 		break;
 	case 'r':
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		break;
+	case 'a':
+		if (robotx == 0 || robotx == 10) {
+			robotx -= 10;
+			if (firstPerson) {
+				Eye.x -= 10;
+				At.x -= 10;
+			}
+		}
+		
+		break;
+	case 'd':
+		if (robotx == 0 || robotx == -10) {
+			robotx += 10;
+			if (firstPerson) {
+				
+				Eye.x += 10;
+				At.x += 10;
+			}
+		}
+		break;
+	case 'f':
+		if (firstPerson == false) {
+			Eye.y -= 10;
+			Eye.z -= 35;
+			At.z -= 15;
+			firstPerson = true;
+			if (robotx == 10) {
+				Eye.x += 10;
+				At.x += 10;
+			}
+			if (robotx == -10) {
+				Eye.x -= 10;
+				At.x -= 10;
+			}
+		}
+		else {
+			Eye.y += 10;
+			Eye.z += 35;
+			At.z += 15;
+			firstPerson = false;
+			Eye.x = 0;
+			At.x = 0;
+		}
 		break;
 	case 27:
 		exit(0);
@@ -345,18 +811,7 @@ void myReshape(int w, int h)
 //=======================================================================
 // Assets Loading Function
 //=======================================================================
-void LoadAssets()
-{
-	// Loading Model files
-	model_moto.Load("Models/train/tr.3ds");
-	model_car.Load("Models/car/car.3ds");
-	model_robot.Load("Models/robot/robot.3ds");
 
-
-	// Loading texture files
-	tex_ground.Load("Textures/ground.bmp");
-	loadBMP(&tex, "Textures/blu-sky-3.bmp", true);
-}
 
 //=======================================================================
 // Main Function
@@ -384,6 +839,8 @@ void main(int argc, char** argv)
 	glutReshapeFunc(myReshape);
 
 	myInit();
+
+	glutTimerFunc(0, time, 0);
 
 	LoadAssets();
 	glEnable(GL_DEPTH_TEST);
