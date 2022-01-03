@@ -351,10 +351,9 @@ void time(int) {
 	rotateDeg += 3;
 	if (jumpUp > 0) {
 		roboty += 2;
-		if (firstPerson) {
 			At.y += 2;
 			Eye.y += 2;
-		}
+		
 		jumpUp -= 2;
 		if (jumpUp == 0) {
 			jumpDown = 6;
@@ -364,20 +363,19 @@ void time(int) {
 	}
 	if (jumpDown > 0) {
 		roboty -= 2;
-		if (firstPerson) {
 			At.y -= 2;
 			Eye.y -= 2;
-		}
+		
 		jumpDown -= 2;
 		if (jumpDown == 0)
 			jump = false;
 	}
 	if (flyUp > 0) {
 		roboty += 2;
-		if (firstPerson) {
+
 			At.y += 2;
 			Eye.y += 2;
-		}
+		
 		flyUp -= 2;
 		if (flyUp == 0)
 			flyStill = 60;
@@ -389,10 +387,9 @@ void time(int) {
 	}
 	if (flyDown > 0) {
 		roboty -= 2;
-		if (firstPerson) {
 			At.y -= 2;
 			Eye.y -= 2;
-		}
+		
 		flyDown -= 2;
 		if (flyDown == 0)
 			fly = false;
