@@ -56,13 +56,30 @@ bool fly = false;
 double deathroll = 0;
 double rotateDeg=0;
 
-double lightElevation = 10;
-bool lightUp = true;
+double lightElevation = 30;
+bool lightUp = false;
 
-double ambientRed = 0.1;
-double ambientdiffuse=0.5;
+double redd = 1;
+double greenn = 1;
+double bluee = 1;
 
 double text = -50;
+
+int score = 0;
+int gameSpeed = 5;
+
+vector<double>presents = {};
+double presentsx = 0;
+double presentsz = 0;
+bool present1 = true;
+bool present2 = true;
+bool present3 = true;
+bool present4 = true;
+bool present5 = true;
+
+bool magic1 = true;
+bool magic2 = true;
+
 
 class Vector
 {
@@ -97,6 +114,7 @@ Model_3DS model_robot;
 Model_3DS model_coin;
 Model_3DS model_cactus;
 Model_3DS model_magic;
+Model_3DS model_sign;
 
 
 // Textures
@@ -116,20 +134,22 @@ void InitLightSource()
 	glEnable(GL_LIGHT0);
 
 	// Define Light source 0 ambient light
-	GLfloat ambient[] = { 0.1f, 0.1f, 0.1, 1.0f };
+	GLfloat ambient[] = { redd,greenn , bluee, 1};
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
 
 	// Define Light source 0 diffuse light
-	GLfloat diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+	GLfloat diffuse[] = { 0.7, 0.7, 0.7, 1 };
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
 
 	// Define Light source 0 Specular light
-	GLfloat specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	GLfloat specular[] = { redd, greenn, bluee, 1 };
 	glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
 
 	// Finally, define light source 0 position in World Space
-	GLfloat light_position[] = { 0.0f, 10, 0, 1.0f };
+	GLfloat light_position[] = { 0.0f, lightElevation, robotz, 1 };
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	GLfloat dir[] = { 0,-1,0 };
+	glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, dir);
 }
 
 void print(int x, int y,int z, char* string)
@@ -282,6 +302,7 @@ void LoadAssets()
 	//model_coin.Load("Models/coin/coin.3ds");
 	model_cactus.Load("Models/cactus/cactus.3ds");
 	model_magic.Load("Models/magic/magic.3ds");
+	model_sign.Load("Models/sign/sign.3ds");
 
 
 	// Loading texture files
@@ -296,25 +317,32 @@ void LoadAssets()
 }
 
 void time(int) {
-
-	if (lightUp && lightElevation < 12) {
-		lightElevation++;
-		if (lightElevation == 12)
+	if (robotz < -719) {
+		gameSpeed = 10;
+	}
+	if (lightUp ) {
+		lightElevation+=3;
+		if (lightElevation == 30)
 			lightUp = false;
 	}
-	if (lightUp == false && lightElevation > -1000) {
-		lightElevation-=20;
-		if (lightElevation == -5)
+	if (lightUp == false) {
+		lightElevation-=3;
+		if (lightElevation == 9)
 			lightUp = true;
 	}
 	
 	if (gameOn == false) {
 		deathroll = 90;
+		greenn = 0;
+		bluee = 0;
+		InitLightSource();
+		glLoadIdentity();
 		
 	}
+
 	if(gameOn){
-	robotz = robotz - 5;
-	text = text - 5;
+	robotz = robotz - gameSpeed;
+	text = text - gameSpeed;
 	}
 
 	if (rotateDeg == 360) {
@@ -323,18 +351,33 @@ void time(int) {
 	rotateDeg += 3;
 	if (jumpUp > 0) {
 		roboty += 2;
+		if (firstPerson) {
+			At.y += 2;
+			Eye.y += 2;
+		}
 		jumpUp -= 2;
-		if (jumpUp == 0)
+		if (jumpUp == 0) {
 			jumpDown = 6;
+			
+		}
+
 	}
 	if (jumpDown > 0) {
 		roboty -= 2;
+		if (firstPerson) {
+			At.y -= 2;
+			Eye.y -= 2;
+		}
 		jumpDown -= 2;
 		if (jumpDown == 0)
 			jump = false;
 	}
 	if (flyUp > 0) {
 		roboty += 2;
+		if (firstPerson) {
+			At.y += 2;
+			Eye.y += 2;
+		}
 		flyUp -= 2;
 		if (flyUp == 0)
 			flyStill = 60;
@@ -346,14 +389,18 @@ void time(int) {
 	}
 	if (flyDown > 0) {
 		roboty -= 2;
+		if (firstPerson) {
+			At.y -= 2;
+			Eye.y -= 2;
+		}
 		flyDown -= 2;
 		if (flyDown == 0)
 			fly = false;
 	}
 
 	if (gameOn) {
-		Eye.z -= 5;
-		At.z -= 5;
+		Eye.z -= gameSpeed;
+	    At.z -= gameSpeed;
 	}
 	glLoadIdentity();	//Clear Model_View Matrix
 
@@ -398,32 +445,36 @@ void time(int) {
 			if ((robotz - magicz) < 1.5 && (robotz - magicz) > -2) {
 				fly = true;
 				flyUp = 8;
+				if (i == 0)
+					magic1 = false;
+				else if (i == 2)
+					magic2 = false;
 			}
 
 		}
 	}
 
-
-	for (int i = 0; i < coins.size(); i = i + 2) {
-		coinsx = coins.at(i);
-		coinsz = coins.at(i + 1);
-		if (coinsx == robotx || (coinsx == 1 && robotx == 0)) {
-			if ((robotz - coinsz) < 1 && (robotz - coinsz) > -1) {
-				int z = i/2;
-				
-				if (i== 0)
-					coin1 = false;
-				else if (i  == 2) {
-					coin2 = false;
+	
+	for (int i = 0; i < presents.size(); i = i + 2) {
+		presentsx = presents.at(i);
+		presentsz = presents.at(i + 1);
+		if (presentsx == robotx || (presentsx == 1 && robotx == 0)) {
+			if ((robotz - presentsz) < 5 && (robotz - presentsz) > -3) {
+				int z = i / 2;
+				score++;
+				if (i == 0)
+					present1 = false;
+				else if (i == 2) {
+					present2 = false;
 				}
 				else if (i == 4)
-					coin3 = false;
-				else if (i==6)
-					coin4 = false;
-				else if (i==8)
-					coin5 = false;
+					present3 = false;
+				else if (i == 6)
+					present4 = false;
+				else if (i == 8)
+					present5 = false;
 
-				if (jumpUp==0 && jumpDown<=0) {
+				if (jumpUp == 0 && jumpDown <= 0) {
 					jumpUp = 6;
 					jump = true;
 				}
@@ -432,12 +483,115 @@ void time(int) {
 		}
 	}
 
+	for (int i = 0; i < coins.size(); i = i + 2) {
+		coinsx = coins.at(i);
+		coinsz = coins.at(i + 1);
+		if (coinsx == robotx || (coinsx == 1 && robotx == 0)) {
+			if (i < 10) {
+				if ((robotz - coinsz) < 1 && (robotz - coinsz) > -1) {
+					int z = i / 2;
+					score++;
+					if (i == 0)
+						coin1 = false;
+					else if (i == 2) {
+						coin2 = false;
+					}
+					else if (i == 4)
+						coin3 = false;
+					else if (i == 6)
+						coin4 = false;
+					else if (i == 8)
+						coin5 = false;
+
+					if (jumpUp == 0 && jumpDown <= 0) {
+						jumpUp = 6;
+						jump = true;
+					}
+				}
+			}
+			else {
+				if (i > 9) {
+					
+					if ((robotz - coinsz) < 5 && (robotz - coinsz) > -3) {
+						
+						int z = i / 2;
+						score+=2;
+						if (i == 10)
+							present1 = false;
+						else if (i == 12) {
+							present2 = false;
+						}
+						else if (i == 14)
+							present3 = false;
+						else if (i == 16)
+							present4 = false;
+						else if (i == 18)
+							present5 = false;
+
+						if (jumpUp == 0 && jumpDown <= 0) {
+							jumpUp = 6;
+							jump = true;
+						}
+					}
+			}
+
+		}
+	}
+
+	
+}
 	glutPostRedisplay();
 	glutTimerFunc(100, time, 0);
 }
+void drawPresents(int x, int z) {
+	
+	glPushMatrix();
+	
+	glTranslated(x, 0, z);
+	glRotated(rotateDeg, 0, 1, 0);
+	glScaled(40, 40, 40);
+	//if (presentsAnim) {
+		//glRotated(rotateDeg, 0, 1, 0);
+	//}
 
+	glPushMatrix();
 
+	glColor3f(1, 1, 0);
+	glutSolidCube(0.15);
+	glPopMatrix();
+	glColor3f(0, 0, 1);
 
+	glPushMatrix();
+	glTranslated(0, 0.06, 0);
+	glScaled(1, 0.21, 0.2);
+	glutSolidCube(0.15);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(0, 0.06, 0);
+	glScaled(0.2, 0.21, 1);
+	glutSolidCube(0.15);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(0, 0, 0.06);
+	glScaled(0.2, 1, 0.21);
+	glutSolidCube(0.15);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(0, 0, -0.06);
+	glScaled(0.2, 1, 0.21);
+	glutSolidCube(0.15);
+	glPopMatrix();
+
+	glPushMatrix();
+	glColor3f(1, 0, 0);
+	glTranslated(0, 0.082, 0);
+	glutSolidSphere(0.015, 15, 15);
+	glPopMatrix();
+	glPopMatrix();
+}
 void drawCoin(double x, double z) {
 
 	
@@ -469,6 +623,14 @@ void drawMoto(int x, int z) {
 	glPopMatrix();
 
 }
+void drawSign(int x, int z) {
+	glPushMatrix();
+	glTranslated(x, 1.5, z);
+	glScaled(0.1, 0.1, 0.1);
+	model_sign.Draw();
+	glPopMatrix();
+
+}
 
 void drawCar(int x, int z) {
 	glPushMatrix();
@@ -493,34 +655,47 @@ void myDisplay(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	InitLightSource();
 
 
-	GLfloat lightIntensity[] = { 0.7, 0.7, 0.7, 1.0f };
+	/*GLfloat lightIntensity[] = { 0.7, 0.7, 0.7, 1.0f };
 	GLfloat lightPosition[] = { 0.0f, 100.0f, 0.0f, 0.0f };
 	glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
-	glLightfv(GL_LIGHT0, GL_AMBIENT, lightIntensity);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, lightIntensity);*/
 
 	// Draw Ground
 	RenderGround();
 	RenderGround2();
 
+	glColor3f(0, 0, 0);
+	glPushMatrix();
+	glTranslated(robotx, roboty, robotz);
+	//glutSolidSphere(4, 50, 50);
+	glPopMatrix();
+
 	//Draw score
 	glColor3f(0, 0, 0);
 	char* p0s[20];
-	sprintf((char*)p0s, "Score: %d", 50);
+	sprintf((char*)p0s, "Score: %d", score);
 	print(-20, 8,text, (char*)p0s);
 	glColor3f(1, 1, 1);
 
 	
 
 	// Draw magic
+	if(magic1)
 	drawMagic(1,-420 );
+	if (magic2)
+		drawMagic(1, -1200);
 	if (push) {
 		magic.push_back(1);
 		magic.push_back(-420);
+		magic.push_back(1);
+		magic.push_back(-1200);
 	}
 
-
+	
+	glColor3f(1, 1, 1);
 	// Draw motos Model
 	drawMoto(10, -100);
 	drawMoto(1, -200);
@@ -579,7 +754,32 @@ void myDisplay(void)
 		coins.push_back(-650);
 	}
 	glColor3f(1, 1, 1);
-	
+	// draw presents
+	if (present1)
+		drawPresents(-10, -950);
+	if (present2)
+		drawPresents(10, -1050);
+	if (present3)
+		drawPresents(-10, -1150);
+	if (present4)
+		drawPresents(1, -1550);
+	if (present5)
+		drawPresents(10, -1650);
+	glColor3f(1, 1, 1);
+	if (push) {
+		coins.push_back(-10);
+		coins.push_back(-950);
+		coins.push_back(10);
+		coins.push_back(-1050);
+		coins.push_back(-10);
+		coins.push_back(-1150);
+		coins.push_back(1);
+		coins.push_back(-1550);
+		coins.push_back(10);
+		coins.push_back(-1650);
+		
+		
+	}
 
 	
 	//draw Cars
@@ -604,6 +804,28 @@ void myDisplay(void)
 		cars.push_back(-1000);
 		cars.push_back(12);
 		cars.push_back(-1000);
+		cars.push_back(-12);
+		cars.push_back(-1100);
+		cars.push_back(-12);
+		cars.push_back(-1200);
+		cars.push_back(12);
+		cars.push_back(-1200);
+		cars.push_back(0);
+		cars.push_back(-1300);
+		cars.push_back(0);
+		cars.push_back(-1400);
+		cars.push_back(-12);
+		cars.push_back(-1400);
+		cars.push_back(12);
+		cars.push_back(-1500);
+		cars.push_back(0);
+		cars.push_back(-1500);
+		cars.push_back(-12);
+		cars.push_back(-1600);
+		cars.push_back(12);
+		cars.push_back(-1700);
+		cars.push_back(-12);
+		cars.push_back(-1700);
 	}
 
 	//draw cactus
@@ -615,8 +837,19 @@ void myDisplay(void)
 	drawCactus(-15, -550);
 	drawCactus(15, -650);
 	drawCactus(-15, -700);
-	
-	
+	//draw signs
+	drawSign(20, -750);
+	drawSign(-20, -850);
+	drawSign(20, -950);
+	drawSign(-20, -1050);
+	drawSign(20, -1150);
+	drawSign(-20, -1250);
+	drawSign(-20, -1350);
+	drawSign(20, -1450);
+	drawSign(-20, -1500);
+	drawSign(20, -1600);
+	drawSign(-20, -1700);
+
 
 	
 
@@ -688,21 +921,21 @@ void myKeyboard(unsigned char button, int x, int y)
 	case 'a':
 		if (robotx == 0 || robotx == 10) {
 			robotx -= 10;
-			if (firstPerson) {
+		
 				Eye.x -= 10;
 				At.x -= 10;
-			}
+			
 		}
 		
 		break;
 	case 'd':
 		if (robotx == 0 || robotx == -10) {
 			robotx += 10;
-			if (firstPerson) {
+		
 				
 				Eye.x += 10;
 				At.x += 10;
-			}
+			
 		}
 		break;
 	case 'f':
@@ -711,22 +944,14 @@ void myKeyboard(unsigned char button, int x, int y)
 			Eye.z -= 35;
 			At.z -= 15;
 			firstPerson = true;
-			if (robotx == 10) {
-				Eye.x += 10;
-				At.x += 10;
-			}
-			if (robotx == -10) {
-				Eye.x -= 10;
-				At.x -= 10;
-			}
+			
 		}
 		else {
 			Eye.y += 10;
 			Eye.z += 35;
 			At.z += 15;
 			firstPerson = false;
-			Eye.x = 0;
-			At.x = 0;
+		
 		}
 		break;
 	case 27:
@@ -738,7 +963,35 @@ void myKeyboard(unsigned char button, int x, int y)
 
 	glutPostRedisplay();
 }
+void actM(int button, int state, int x, int y)//mouse function takes 4 parameters: button: which button has been clicked (GLUT_RIGHT_BUTTON or GLUT_LEFT_BUTTON),
+											//state wether the button is clicked or released (GLUT_UP or GLUT_DOWN)
+											// x and y are the position of the mouse cursor
+{
+	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)//if the left button has been clicked then translate the square to the mouse position
+	{
+		if (robotx == 0 || robotx == 10) {
+			robotx -= 10;
 
+			Eye.x -= 10;
+			At.x -= 10;
+
+		}
+	}
+
+	if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN)//if the right button has been clicked, translate  the square to the origin (0,0)
+	{
+		if (robotx == 0 || robotx == -10) {
+			robotx += 10;
+
+
+			Eye.x += 10;
+			At.x += 10;
+
+		}
+	}
+
+	glutPostRedisplay();//redisplay to update the screen with the new paraeters
+}
 //=======================================================================
 // Motion Function
 //=======================================================================
@@ -835,6 +1088,8 @@ void main(int argc, char** argv)
 	glutMotionFunc(myMotion);
 
 	glutMouseFunc(myMouse);
+	glutMouseFunc(actM);			//call the mouse function
+
 
 	glutReshapeFunc(myReshape);
 
